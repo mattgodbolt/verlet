@@ -4,7 +4,8 @@ var ctx = null;
 var Height = 480;
 var Width = 640;
 var Gravity = 0.18;
-var Friction = 0.9999;
+var Friction = 0.9995;
+var Elastic = 0.997;
 
 function Static(xPos, yPos) {
     this.x = xPos;
@@ -14,6 +15,26 @@ function Static(xPos, yPos) {
     this.move = function() {
         this.x = xPos;
         this.y = yPos;
+    };
+    this.constrain = function() {};
+};
+
+function Mouse() {
+    this.x = 0;
+    this.y = 0;
+
+    var mouseX = 0;
+    var mouseY = 0;
+    canvas.addEventListener('mousemove', function(evt) {
+        var rect = canvas.getBoundingClientRect();
+        mouseX = evt.clientX - rect.left;
+        mouseY = evt.clientY - rect.top;
+    });
+
+    this.draw = function() {};
+    this.move = function() {
+        this.x = mouseX;
+        this.y = mouseY;
     };
     this.constrain = function() {};
 };
@@ -73,7 +94,7 @@ function Rope(from, to, maxDist) {
         var distSqr = xDist * xDist + yDist * yDist;
         var dist = Math.sqrt(distSqr);
         if (dist < maxDist) return;
-        var ratio = maxDist / dist;
+        var ratio = (maxDist / dist) * Elastic;
         var midX = (this.from.x + this.to.x) / 2.0;
         var midY = (this.from.y + this.to.y) / 2.0;
         this.from.x = midX + (xDist / 2) * ratio;
@@ -82,16 +103,21 @@ function Rope(from, to, maxDist) {
         this.to.y = midY - (yDist / 2) * ratio;
     };
 };
+var scene = [];
 
-var scene = [new Static(80, 20)];
+function init() {
+    //scene = [new Static(80, 20)];
+    scene = [new Mouse()];
 
-for (var i = 0; i < 8; ++i) {
-    scene.push(new Circle(80 + 20 * i, 20 + 35 * i));
+    for (var i = 0; i < 8; ++i) {
+        scene.push(new Circle(80 + 20 * i, 20 + 35 * i));
+    }
+    var numRopes = scene.length;
+    for (var i = 1; i < numRopes; ++i) {
+        scene.push(new Rope(scene[i-1], scene[i], 40));
+    }
 }
-var numRopes = scene.length;
-for (var i = 1; i < numRopes; ++i) {
-    scene.push(new Rope(scene[i-1], scene[i], 40));
-}
+
 
 function tick() {
     ctx.fillStyle = "#222";
@@ -110,6 +136,7 @@ function tick() {
 function simulate() {
     canvas = $("canvas")[0];
     ctx = canvas.getContext("2d");
+    init();
     tick();
     setInterval(tick, 8);
 }
