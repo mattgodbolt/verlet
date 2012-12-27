@@ -7,6 +7,24 @@ var Gravity = 0.18;
 var Friction = 0.9995;
 var Elastic = 0.997;
 
+function Point(x, y) {
+    this.x = x;
+    this.y = y;
+    this.add = function(p) {
+        this.x += p.x;
+        this.y += p.y;
+        return this;
+    }
+    this.sub = function(p) {
+        this.x -= p.x;
+        this.y -= p.y;
+    }
+    this.mul = function(scale) {
+        this.x *= scale;
+        this.y *= scale;
+    }
+};
+
 function Static(xPos, yPos) {
     this.x = xPos;
     this.y = yPos;
@@ -37,6 +55,7 @@ function Mouse() {
         this.y = mouseY;
     };
     this.constrain = function() {};
+    this.collide = function() {};
 };
 
 function Circle(xPos, yPos) {
@@ -72,6 +91,23 @@ function Circle(xPos, yPos) {
         if (this.y < this.radius) this.y = this.radius;
         if (this.y > Height - this.radius) this.y = Height - this.radius;
     };
+    this.collide = function(other) {
+        if (other.radius !== undefined) {
+            var xDist = this.x - other.x;
+            var yDist = this.y - other.y;
+            var distSqr = xDist * xDist + yDist * yDist;
+            var dist = Math.sqrt(distSqr);
+            var minDist = this.radius + other.radius;
+            if (dist >= minDist) return;
+            var ratio = (minDist / dist);
+            var midX = (this.x + other.x) / 2.0;
+            var midY = (this.y + other.y) / 2.0;
+            this.x = midX + (xDist / 2) * ratio;
+            this.y = midY + (yDist / 2) * ratio;
+            other.x = midX - (xDist / 2) * ratio;
+            other.y = midY - (yDist / 2) * ratio;
+        }
+    };
 }
 
 function Rope(from, to, maxDist) {
@@ -102,6 +138,7 @@ function Rope(from, to, maxDist) {
         this.to.x = midX - (xDist / 2) * ratio;
         this.to.y = midY - (yDist / 2) * ratio;
     };
+    this.collide = function() {};
 };
 var scene = [];
 
@@ -109,8 +146,8 @@ function init() {
     //scene = [new Static(80, 20)];
     scene = [new Mouse()];
 
-    for (var i = 0; i < 8; ++i) {
-        scene.push(new Circle(80 + 20 * i, 20 + 35 * i));
+    for (var i = 0; i < 9; ++i) {
+        scene.push(new Circle(80 + 25 * i, 20 + 45 * i));
     }
     var numRopes = scene.length;
     for (var i = 1; i < numRopes; ++i) {
@@ -120,16 +157,22 @@ function init() {
 
 
 function tick() {
+    var i, j;
     ctx.fillStyle = "#222";
     ctx.fillRect(0, 0, Width, Height);
-    for (var i = 0; i < scene.length; ++i) {
+    for (i = 0; i < scene.length; ++i) {
         scene[i].draw();
     }
-    for (var i = 0; i < scene.length; ++i) {
+    for (i = 0; i < scene.length; ++i) {
         scene[i].move();
     }
-    for (var i = 0; i < scene.length; ++i) {
+    for (i = 0; i < scene.length; ++i) {
         scene[i].constrain();
+    }
+    for (i = 0; i < scene.length; ++i) {
+        for (j = i+1; j < scene.length; ++j) {
+            scene[i].collide(scene[j]);
+        }
     }
 }
 
