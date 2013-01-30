@@ -9,21 +9,25 @@ const GroundFriction = 0.8;
 const Elastic = 0.994;
 const Bounce = 0.9;
 
-function Static(xPos, yPos) {
-    this.pos = new Point(xPos, yPos);
+var Base = {
+    pos: new Point(0, 0),
+    draw: function() {},
+    move: function() {},
+    constrain: function() {},
+    collide: function() {}
+};
 
-    this.draw = function() {};
-    this.move = function() {
-        this.pos.x = xPos;
-        this.pos.y = yPos;
-    };
-    this.constrain = function() {};
-    this.collide = function() {};
+function Static(xPos, yPos) {
+    return $.extend({}, Base, {
+        pos: new Point(xPos, yPos),
+        move: function() {
+            this.pos.x = xPos;
+            this.pos.y = yPos;
+        }
+    });
 };
 
 function Mouse() {
-    this.pos = new Point(0, 0);
-
     var mousePos = new Point(0,0);
     canvas.addEventListener('mousemove', function(evt) {
         var rect = canvas.getBoundingClientRect();
@@ -31,88 +35,81 @@ function Mouse() {
         mousePos.y = evt.clientY - rect.top;
     });
 
-    this.draw = function() {};
-    this.move = function() {
-        this.pos.assign(mousePos);
-    };
-    this.constrain = function() {};
-    this.collide = function() {};
+    return $.extend({}, Base, {
+        move: function() {
+            this.pos.assign(mousePos);
+        }
+    });
 };
 
-function Circle(xPos, yPos) {
-    this.pos = new Point(xPos, yPos);
-    this.radius = 20;
-
-    this.oldPos = new Point(xPos, yPos);
-
-    this.draw = function() {
-        ctx.fillStyle = "#a22";
-        ctx.strokeStyle = "#000";
-        ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-    };
-
-    this.move = function() {
-        var velocity = this.pos.minus(this.oldPos).plus(Gravity).scale(AirFriction);
-        this.oldPos.assign(this.pos);
-        this.pos = this.pos.plus(velocity);
-    };
-
-    this.constrain = function() {
-        if (this.pos.x < this.radius) {
-            this.pos.x = this.radius;
-        }
-        if (this.pos.x > Width - this.radius) {
-            this.pos.x = Width - this.radius;
-        }
-        if (this.pos.y < this.radius) {
-            this.y = this.pos.radius;
-        }
-        if (this.pos.y > Height - this.radius) {
-            this.pos.y = Height - this.radius;
-            var velY = this.pos.y - this.oldPos.y;
-            velY *= -Bounce;
-            this.oldPos.y = this.pos.y - velY;
-            var velX = this.pos.x - this.oldPos.x;
-            velX *= GroundFriction;
-            this.oldPos.x = this.pos.x - velX;
-        }
-    };
-
-    this.collide = function(other) {
-        if (other.radius !== undefined) {
-            var minDist = this.radius + other.radius;
-            Point.constrainDistance(this.pos, other.pos, function(dist) { 
-                return Math.max(dist, minDist); 
-            });
-        }
-    };
+function Circle(xPos, yPos, radius) {
+    return $.extend({}, Base, {
+        pos: new Point(xPos, yPos),
+        radius: radius,
+        oldPos: new Point(xPos, yPos),
+        draw: function() {
+            ctx.fillStyle = "#a22";
+            ctx.strokeStyle = "#000";
+            ctx.beginPath();
+            ctx.arc(this.pos.x, this.pos.y, this.radius, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        },
+       move: function() {
+           var velocity = this.pos.minus(this.oldPos).plus(Gravity).scale(AirFriction);
+           this.oldPos.assign(this.pos);
+           this.pos = this.pos.plus(velocity);
+       },
+       constrain: function() {
+           if (this.pos.x < this.radius) {
+               this.pos.x = this.radius;
+           }
+           if (this.pos.x > Width - this.radius) {
+               this.pos.x = Width - this.radius;
+           }
+           if (this.pos.y < this.radius) {
+               this.y = this.pos.radius;
+           }
+           if (this.pos.y > Height - this.radius) {
+               this.pos.y = Height - this.radius;
+               var velY = this.pos.y - this.oldPos.y;
+               velY *= -Bounce;
+               this.oldPos.y = this.pos.y - velY;
+               var velX = this.pos.x - this.oldPos.x;
+               velX *= GroundFriction;
+               this.oldPos.x = this.pos.x - velX;
+           }
+       },
+       collide:  function(other) {
+           if (other.radius !== undefined) {
+               var minDist = this.radius + other.radius;
+               Point.constrainDistance(this.pos, other.pos, function(dist) { 
+                   return Math.max(dist, minDist); 
+               });
+           }
+       }
+    });
 }
 
 function Rope(from, to, maxDist) {
-    this.from = from;
-    this.to = to;
-
-    this.draw = function() {
-        ctx.beginPath();
-        ctx.moveTo(this.from.pos.x, this.from.pos.y);
-        ctx.lineTo(this.to.pos.x, this.to.pos.y);
-        ctx.closePath();
-        ctx.stroke();
-    }
-
-    this.move = function() {};
-
-    this.constrain = function() {
-        Point.constrainDistance(this.from.pos, this.to.pos, function(dist) { 
-            if (dist < maxDist) return dist;
-            return dist + (maxDist - dist) * Elastic;
-        });
-    };
-    this.collide = function() {};
+    return $.extend({}, Base, {
+        from: from,
+        to: to,
+        draw: function() {
+            ctx.beginPath();
+            ctx.moveTo(this.from.pos.x, this.from.pos.y);
+            ctx.lineTo(this.to.pos.x, this.to.pos.y);
+            ctx.closePath();
+            ctx.stroke();
+        },
+       constrain: function() {
+           Point.constrainDistance(this.from.pos, this.to.pos, function(dist) { 
+               if (dist < maxDist) return dist;
+               return dist + (maxDist - dist) * Elastic;
+           });
+       }
+    });
 };
 var scene = [];
 
@@ -120,8 +117,8 @@ function init1() {
     //scene = [new Static(80, 20)];
     scene = [new Mouse()];
 
-    for (var i = 0; i < 10; ++i) {
-        scene.push(new Circle(80 + 25 * i, 20 + 45 * i));
+    for (var i = 0; i < 12; ++i) {
+        scene.push(new Circle(80 + 25 * i, 20 + 45 * i, 20));
     }
     var numRopes = scene.length;
     for (var i = 1; i < numRopes; ++i) {
@@ -130,7 +127,7 @@ function init1() {
 }
 
 function init2() {
-    scene = [new Circle(50, 50)];
+    scene = [new Circle(50, 50, 20)];
 }
 
 function tick() {
