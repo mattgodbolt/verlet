@@ -8,6 +8,7 @@ const AirFriction = 0.9995;
 const GroundFriction = 0.8;
 const Elastic = 0.994;
 const Bounce = 0.9;
+const MouseSnap = 0.3;
 
 var Base = {
     pos: new Point(0, 0),
@@ -37,7 +38,8 @@ function Mouse() {
 
     return $.extend({}, Base, {
         move: function() {
-            this.pos.assign(mousePos);
+            var diff = mousePos.minus(this.pos);
+            this.pos.assign(this.pos.plus(diff.scale(MouseSnap)));
         }
     });
 };
